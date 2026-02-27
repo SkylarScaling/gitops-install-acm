@@ -12,9 +12,9 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 # Uncomment this section for placement on infra nodes
-#  config:
-#    nodeSelector:
-#      node-role.kubernetes.io/infra: ""
-#    tolerations:
-#      - key: node-role.kubernetes.io/infra
-#        effect: NoSchedule
+  config:
+    nodeSelector:
+      node-role.kubernetes.io/infra: ""
+    tolerations:
+      - key: node-role.kubernetes.io/infra
+        effect: NoSchedule
