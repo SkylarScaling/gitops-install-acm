@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: search-postgres
+  namespace: open-cluster-management
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  # ODF provides this storage class specifically for RWO block storage
+  storageClassName: ocs-storagecluster-ceph-rbd
