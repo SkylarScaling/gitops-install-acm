@@ -5,6 +5,8 @@ metadata:
   namespace: open-cluster-management
   annotations:
     argocd.argoproj.io/sync-wave: "1"
+    # Ensure ArgoCD can apply this over the operator-generated defaults
+    argocd.argoproj.io/sync-options: ServerSideApply=true
 spec:
   accessModes:
     - ReadWriteOnce
