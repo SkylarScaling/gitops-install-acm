@@ -1,0 +1,86 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: acm-search-patcher
+  namespace: open-cluster-management
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,BeforeHookCreation
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: acm-search-patcher-role
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,BeforeHookCreation
+rules:
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["search.open-cluster-management.io"]
+    resources: ["searches"]
+    verbs: ["get", "list", "create", "patch", "update"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: acm-search-patcher-binding
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,BeforeHookCreation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: acm-search-patcher-role
+subjects:
+  - kind: ServiceAccount
+    name: acm-search-patcher
+    namespace: open-cluster-management
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: patch-acm-search-storage
+  namespace: open-cluster-management
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,BeforeHookCreation
+spec:
+  template:
+    spec:
+      serviceAccountName: acm-search-patcher
+      restartPolicy: OnFailure
+      containers:
+        - name: patcher
+          image: quay.io/openshift/origin-cli:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Waiting for the Search CRD to be established by the ACM Operator..."
+              
+              until oc get crd searches.search.open-cluster-management.io &>/dev/null; do
+                echo "Still waiting for Search CRD..."
+                sleep 10
+              done
+              
+              echo "Search CRD found! Applying ODF storage configuration..."
+              cat <<EOF | oc apply -f -
+              apiVersion: search.open-cluster-management.io/v1alpha1
+              kind: Search
+              metadata:
+                name: search-v2-operator
+                namespace: open-cluster-management
+              spec:
+                dbStorage:
+                  size: 10Gi
+                  storageClassName: ocs-storagecluster-ceph-rbd
+              EOF
+              
+              echo "Search storage configured successfully!"
