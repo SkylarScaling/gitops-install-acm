@@ -6,7 +6,12 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
-# Uncomment section for deploying to infra nodes
+  # Explicitly enable the Search backend architecture
+  overrides:
+    components:
+      - name: search
+        enabled: true
+  # Uncomment section for deploying to infra nodes
   nodeSelector:
     node-role.kubernetes.io/infra: ""
   tolerations:
